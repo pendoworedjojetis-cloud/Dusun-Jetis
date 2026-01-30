@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal Resmi Digital Dusun</title>
+    <title>Portal Resmi Digital Dusun Jetis</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -39,8 +39,8 @@
     <header class="pt-40 pb-24 px-4 hero-bg text-white rounded-b-[4rem] shadow-2xl relative overflow-hidden">
         <div class="max-w-4xl mx-auto text-center relative z-10">
             <span class="bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] font-black tracking-[0.2em] uppercase mb-8 inline-block border border-white/20">Informasi Desa Terintegrasi</span>
-            <h1 id="nama-dusun-hero" class="text-5xl md:text-7xl font-extrabold mb-6 tracking-tighter leading-tight">dusun Jetis</h1>
-            <p id="visi-dusun-hero" class="text-lg md:text-xl text-emerald-50/80 font-light max-w-2xl mx-auto italic"></p>
+            <h1 id="nama-dusun-hero" class="text-5xl md:text-7xl font-extrabold mb-6 tracking-tighter leading-tight">Dusun Jetis</h1>
+            <p id="visi-dusun-hero" class="text-lg md:text-xl text-emerald-50/80 font-light max-w-2xl mx-auto italic">Memuat data...</p>
         </div>
         <div class="absolute top-0 left-0 w-64 h-64 bg-white/5 rounded-full -translate-x-1/2 -translate-y-1/2"></div>
     </header>
@@ -75,7 +75,7 @@
                     <span class="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-sm"><i class="fas fa-lightbulb"></i></span>
                     Visi Dusun
                 </h3>
-                <p id="visi-teks" class="text-slate-300 leading-relaxed text-xl font-light italic"></p>
+                <p id="visi-teks" class="text-slate-300 leading-relaxed text-xl font-light italic">Memuat visi...</p>
             </div>
             <div class="bg-emerald-800 p-12 rounded-[3.5rem] shadow-2xl relative overflow-hidden group border border-emerald-400/20">
                 <h3 class="text-3xl font-bold mb-6 flex items-center gap-4">
@@ -92,71 +92,111 @@
     <footer class="bg-slate-950 text-slate-500 py-20 px-4">
         <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-10 border-t border-slate-800 pt-16 uppercase tracking-widest text-[10px] font-bold">
             <div class="text-center md:text-left">
-                <span class="text-white text-lg mb-2 block">Portal Dusun jetis</span>
-                <p>Jetis, Pendoworejo, Kec. Girimulyo, Kabupaten Kulon Progo, Daerah Istimewa Yogyakarta</p>
+                <span class="text-white text-lg mb-2 block">Portal Dusun Jetis</span>
+                <p>Jetis, Pendoworejo, Kec. Girimulyo, Kabupaten Kulon Progo, DIY</p>
             </div>
             <p>&copy; 2026 KKN UPY 41 Jetis. Semua Hak Dilindungi.</p>
         </div>
     </footer>
 
     <script>
-        // Mengambil data dari API Node.js yang sudah kita buat
-        fetch('/api/data-dusun')
-            .then(res => res.json())
-            .then(data => {
-                // 1. Tampilkan Nama & Visi di Hero
-                if (data.visi && data.visi.length > 0) {
-                    const infoVisi = data.visi[0];
-                    document.getElementById('nama-dusun-hero').innerText = "Dusun jetis"; // Ganti dengan nama dusun lokasi KKN
-                    document.getElementById('visi-dusun-hero').innerText = `"${infoVisi.Visi}"`;
-                    document.getElementById('visi-teks').innerText = infoVisi.Visi;
+        const SHEET_ID = '1WgRRkbg-AkovA1qlqMTBmXqS51PQxNlk9vrtnqz0bYs';
 
-                    // Misi (Pisahkan berdasarkan titik)
-                    const mList = infoVisi.Misi.split('.');
-                    const misiUl = document.getElementById('misi-list');
-                    mList.forEach(m => {
-                        if(m.trim()) misiUl.innerHTML += `<li class="flex gap-4 items-start"><i class="fas fa-circle-check text-emerald-400 mt-1"></i><span>${m.trim()}</span></li>`;
+        async function getSheetData(sheetName) {
+            try {
+                const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${sheetName}`;
+                const response = await fetch(url);
+                const dataText = await response.text();
+                
+                const jsonStart = dataText.indexOf('{');
+                const jsonEnd = dataText.lastIndexOf('}') + 1;
+                const jsonData = JSON.parse(dataText.slice(jsonStart, jsonEnd));
+                
+                const rows = jsonData.table.rows;
+                const cols = jsonData.table.cols;
+                
+                return rows.map(row => {
+                    let obj = {};
+                    row.c.forEach((cell, i) => {
+                        if (cols[i] && cols[i].label) {
+                            const key = cols[i].label;
+                            obj[key] = cell ? cell.v : "";
+                        }
                     });
-                }
+                    return obj;
+                });
+            } catch (error) {
+                console.error(`Gagal mengambil sheet: ${sheetName}`, error);
+                return [];
+            }
+        }
 
-                // 2. Tampilkan Berita (Bento Grid)
-                const bCont = document.getElementById('container-berita');
-                data.berita.reverse().forEach(b => {
+        async function loadAllData() {
+            const [visi, struktur, berita] = await Promise.all([
+                getSheetData('VisiMisi'),
+                getSheetData('Struktur'),
+                getSheetData('Berita')
+            ]);
+
+            // 1. Tampilkan Visi & Misi
+            if (visi.length > 0) {
+                const infoVisi = visi[0];
+                document.getElementById('visi-dusun-hero').innerText = `"${infoVisi.Visi}"`;
+                document.getElementById('visi-teks').innerText = infoVisi.Visi;
+
+                const misiUl = document.getElementById('misi-list');
+                misiUl.innerHTML = '';
+                const mList = infoVisi.Misi.split('.');
+                mList.forEach(m => {
+                    if(m.trim()) {
+                        misiUl.innerHTML += `
+                            <li class="flex gap-4 items-start">
+                                <i class="fas fa-circle-check text-emerald-400 mt-1"></i>
+                                <span>${m.trim()}</span>
+                            </li>`;
+                    }
+                });
+            }
+
+            // 2. Tampilkan Berita
+            const bCont = document.getElementById('container-berita');
+            if (berita.length > 0) {
+                bCont.innerHTML = '';
+                berita.reverse().forEach(b => {
                     const img = b.Gambar || 'https://images.unsplash.com/photo-1516900448138-898720b936c7?auto=format&fit=crop&q=80&w=1000';
                     bCont.innerHTML += `
                         <article class="bento-card group bg-white rounded-[2.5rem] overflow-hidden border border-slate-200/60 shadow-sm">
                             <div class="h-64 overflow-hidden relative">
                                 <img src="${img}" class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110">
-                                <div class="absolute top-5 left-5 bg-white/90 backdrop-blur px-4 py-1.5 rounded-2xl text-[10px] font-black text-slate-900 uppercase shadow-xl border border-white/50">${b.Tanggal}</div>
+                                <div class="absolute top-5 left-5 bg-white/90 backdrop-blur px-4 py-1.5 rounded-2xl text-[10px] font-black text-slate-900 uppercase shadow-xl border border-white/50">${b.Tanggal || 'Terbaru'}</div>
                             </div>
                             <div class="p-8">
                                 <h3 class="text-xl font-extrabold text-slate-900 mb-4 group-hover:text-emerald-600 transition-colors">${b.Judul}</h3>
                                 <p class="text-slate-500 text-sm leading-relaxed line-clamp-3">${b.Isi}</p>
                             </div>
-                        </article>
-                    `;
+                        </article>`;
                 });
+            }
 
-                // 3. Tampilkan Struktur Organisasi
-                const sCont = document.getElementById('container-struktur');
-                data.struktur.forEach(s => {
+            // 3. Tampilkan Struktur
+            const sCont = document.getElementById('container-struktur');
+            if (struktur.length > 0) {
+                sCont.innerHTML = '';
+                struktur.forEach(s => {
                     const avatar = s.Foto || `https://ui-avatars.com/api/?name=${s.Nama}&background=10b981&color=fff&size=128&bold=true`;
                     sCont.innerHTML += `
                         <div class="text-center group">
                             <div class="relative w-28 h-28 mx-auto mb-6">
-                                <div class="absolute inset-0 bg-emerald-500 rounded-full blur-xl opacity-0 group-hover:opacity-20 transition duration-500"></div>
                                 <img src="${avatar}" class="relative w-full h-full rounded-full object-cover border-4 border-white shadow-2xl transition-transform duration-500 group-hover:scale-110">
                             </div>
                             <h4 class="font-extrabold text-slate-900 tracking-tight leading-none mb-1">${s.Nama}</h4>
                             <p class="text-[9px] font-black text-emerald-600 uppercase tracking-widest">${s.Jabatan}</p>
-                        </div>
-                    `;
+                        </div>`;
                 });
-            })
-            .catch(err => {
-                console.error("Gagal Memuat Data:", err);
-                alert("Ada kendala koneksi data. Pastikan Google Sheets sudah di-share 'Anyone with link'!");
-            });
+            }
+        }
+
+        loadAllData();
     </script>
 </body>
 </html>
