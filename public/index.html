@@ -129,9 +129,8 @@
                 getSheetData('Berita')
             ]);
 
-            // 1. Tampilkan Visi & Misi (Mencari baris yang isinya bukan header)
             if (visiData.length > 0) {
-                // Mencari data di baris 2 (index 1) jika baris 1 adalah header, atau cari yang isinya bukan kata "Visi"
+                // Mencari baris yang mengandung teks visi asli (biasanya baris 2)
                 const infoVisi = visiData.find(d => d.Visi && d.Visi.toLowerCase() !== 'visi') || visiData[0];
                 
                 document.getElementById('visi-dusun-hero').innerText = `"${infoVisi.Visi}"`;
@@ -139,20 +138,25 @@
 
                 const misiUl = document.getElementById('misi-list');
                 misiUl.innerHTML = '';
-                // Memisahkan berdasarkan titik atau baris baru
-                const mList = infoVisi.Misi.split(/[.\n]/);
+                
+                // Perbaikan: Membagi berdasarkan Baris Baru (\n) agar tidak terpotong titik di tengah kalimat
+                const mList = infoVisi.Misi.split('\n');
+                
                 mList.forEach(m => {
-                    if(m.trim() && m.trim().toLowerCase() !== 'misi') {
+                    let cleanMisi = m.trim();
+                    // Jika baris diawali angka seperti "1. ", kita rapikan
+                    cleanMisi = cleanMisi.replace(/^\d+[\.\)]\s*/, '');
+                    
+                    if(cleanMisi && cleanMisi.toLowerCase() !== 'misi') {
                         misiUl.innerHTML += `
-                            <li class="flex gap-4 items-start">
-                                <i class="fas fa-circle-check text-emerald-400 mt-1"></i>
-                                <span>${m.trim()}</span>
+                            <li class="flex gap-4 items-start mb-2">
+                                <i class="fas fa-circle-check text-emerald-400 mt-1 flex-shrink-0"></i>
+                                <span class="text-sm leading-relaxed">${cleanMisi}</span>
                             </li>`;
                     }
                 });
             }
 
-            // 2. Tampilkan Berita
             const bCont = document.getElementById('container-berita');
             if (berita.length > 0) {
                 bCont.innerHTML = '';
@@ -173,7 +177,6 @@
                 });
             }
 
-            // 3. Tampilkan Struktur
             const sCont = document.getElementById('container-struktur');
             if (struktur.length > 0) {
                 sCont.innerHTML = '';
