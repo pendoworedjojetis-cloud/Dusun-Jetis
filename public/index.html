@@ -103,9 +103,8 @@
                 const response = await fetch(url);
                 const dataText = await response.text();
                 const jsonData = JSON.parse(dataText.substring(dataText.indexOf('{'), dataText.lastIndexOf('}') + 1));
-                
                 const rows = jsonData.table.rows;
-                // Kita ambil datanya mulai dari baris kedua (index 0 di gviz biasanya baris data pertama setelah header)
+                
                 return rows.map(row => {
                     const c = row.c;
                     if (sheetName === 'VisiMisi') {
@@ -130,17 +129,20 @@
                 getSheetData('Berita')
             ]);
 
-            // 1. Tampilkan Visi & Misi
+            // 1. Tampilkan Visi & Misi (Mencari baris yang isinya bukan header)
             if (visiData.length > 0) {
-                const infoVisi = visiData[0]; // Ambil baris pertama
+                // Mencari data di baris 2 (index 1) jika baris 1 adalah header, atau cari yang isinya bukan kata "Visi"
+                const infoVisi = visiData.find(d => d.Visi && d.Visi.toLowerCase() !== 'visi') || visiData[0];
+                
                 document.getElementById('visi-dusun-hero').innerText = `"${infoVisi.Visi}"`;
                 document.getElementById('visi-teks').innerText = infoVisi.Visi;
 
                 const misiUl = document.getElementById('misi-list');
                 misiUl.innerHTML = '';
-                const mList = infoVisi.Misi.split('.');
+                // Memisahkan berdasarkan titik atau baris baru
+                const mList = infoVisi.Misi.split(/[.\n]/);
                 mList.forEach(m => {
-                    if(m.trim()) {
+                    if(m.trim() && m.trim().toLowerCase() !== 'misi') {
                         misiUl.innerHTML += `
                             <li class="flex gap-4 items-start">
                                 <i class="fas fa-circle-check text-emerald-400 mt-1"></i>
@@ -155,7 +157,7 @@
             if (berita.length > 0) {
                 bCont.innerHTML = '';
                 berita.reverse().forEach(b => {
-                    if(!b.Judul) return;
+                    if(!b.Judul || b.Judul.toLowerCase() === 'judul') return;
                     const img = b.Gambar || 'https://images.unsplash.com/photo-1516900448138-898720b936c7?auto=format&fit=crop&q=80&w=1000';
                     bCont.innerHTML += `
                         <article class="bento-card group bg-white rounded-[2.5rem] overflow-hidden border border-slate-200/60 shadow-sm">
@@ -176,7 +178,7 @@
             if (struktur.length > 0) {
                 sCont.innerHTML = '';
                 struktur.forEach(s => {
-                    if(!s.Nama) return;
+                    if(!s.Nama || s.Nama.toLowerCase() === 'nama') return;
                     const avatar = s.Foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(s.Nama)}&background=10b981&color=fff&size=128&bold=true`;
                     sCont.innerHTML += `
                         <div class="text-center group">
